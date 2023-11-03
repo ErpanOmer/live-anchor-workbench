@@ -1,0 +1,5 @@
+provider: generic
+url: ''
+updaterCacheDirName: live-anchor-workbench-updater
+publisherName:
+  - Tao Bao(China)Software Co.,Ltd.
