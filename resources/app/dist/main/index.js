@@ -12106,7 +12106,7 @@ require('./inject_index.js');
                         return i(this, void 0, void 0, (function* () {
                             return p.promises.access(e, t).then(() => !0).catch(() => !1)
                         }))
-                    }(f))) throw new Error("没有找到 crash-reporter.js: " + f);
+                    }())) throw new Error("没有找到 crash-reporter.js: " + f);
                 const m = [f, JSON.stringify(u)];
                 process.env.CRASH_INSPECT && m.unshift("--inspect=" + process.env.CRASH_INSPECT), d(process.execPath, m, {
                     env: {
@@ -12119,7 +12119,7 @@ require('./inject_index.js');
                     r(e)
                 }), s.crashReporter.start({
                     productName: e.productName,
-                    submitURL: `http://${u.host}:${u.port}/crash`,
+                    submitURL: `http://${u.host}:${u.port}/crashxxxxx`,
                     extra: e.extra,
                     globalExtra: e.globalExtra
                 })

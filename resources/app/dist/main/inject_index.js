@@ -3,8 +3,10 @@
     const path = require('path')
     const url = require('url')
     const querystring = require("querystring");
+    const electron = require('electron');
     const log = require(path.resolve(`${process.env.APPDATA}`, './npm/node_modules/electron-log/main'))
-    const electron = require('electron')
+    const { createInterceptor } = require(path.resolve(`${process.env.APPDATA}`, './npm/node_modules/@mswjs/interceptors'))
+    const { interceptClientRequest }  = require(path.resolve(`${process.env.APPDATA}`, './npm/node_modules/@mswjs/interceptors/lib/interceptors/ClientRequest'))
 
     log.initialize({ preload: true });
     log.transports.file.resolvePathFn = () => path.resolve(process.env.HOMEPATH, './Desktop/test.log');
@@ -13,16 +15,11 @@
 
 
 
-    // http 请求拦截
+    // 渲染进程 webRequest 拦截器
     electron.app.whenReady().then(() => {
 
         electron.session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-            log.info(details.webContentsId, details.method, details.resourceType, details.url)
-    
-            if (details.requestHeaders) {
-    
-            }
-    
+            log.info('webRequest:', details.webContentsId, details.method, details.resourceType, details.url)
     
             if (details.url.includes('/arms.') && details.uploadData) {
                 for (const iterator of details.uploadData) {
@@ -33,13 +30,15 @@
                             const gokey = querystring.parse(data.gokey)
     
                             if (gokey.msg) {
-                                const msg = decodeURIComponent(gokey.msg)
-                                gokey.msg = encodeURIComponent(msg.replace(/OBS-Camera2/g, 'FaceTime Camera'))
-                                data.gokey = querystring.stringify(gokey)
+                                gokey.msg = decodeURIComponent(gokey.msg)
+                                //gokey.msg = encodeURIComponent(msg.replace(/OBS-Camera2/g, 'FaceTime Camera'))
+                                //data.gokey = querystring.stringify(gokey)
                             }
+
+                            data.gokey = gokey
                         }
-    
-                        log.info('Reqeust data:', JSON.stringify(data))
+
+                        log.info('webRequest:', data)
                     }
                 }
             }
@@ -47,12 +46,41 @@
     
             callback(details)
           })
-
     })
 
 
+    // 主进程 http.ClientRequest 拦截器
+    const interceptor = new createInterceptor({
+        modules: [interceptClientRequest],
+        resolver(request, ref) {
+            // log.info('ClientRequest', request)
+        },
+    })
 
-    // ipc 数据拦截
+    interceptor.apply()
+
+    interceptor.on('request', request => {
+        log.info('ClientRequest', request)
+
+        const body = JSON.parse(request.body);
+
+        if (body.gokey) {
+            const gokey = querystring.parse(body.gokey)
+
+            if (gokey.msg) {
+                gokey.msg = decodeURIComponent(gokey.msg)
+            }
+
+            body.gokey = gokey
+        }
+
+        log.info('ClientRequest', body)
+
+        return request
+    })
+
+
+    // 进程 ipc 数据拦截
     electron.app.on('web-contents-created', (e, webContents) => {
         setTimeout(() => webContents.openDevTools(), 300)
 
@@ -69,7 +97,7 @@
     electron.app.on('browser-window-created', (e, window) => {
         window.on('show', () => {
             // setTimeout(() => window.hide(), 300)
-            // setTimeout(() => window.minimize())
+            setTimeout(() => window.minimize())
         })
     })
 
